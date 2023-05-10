@@ -44,10 +44,12 @@ def _near_pow_2(x):
 def seeded_variational_dropout(x, p, seed):
     output = torch.empty_like(x)
     assert x.is_contiguous() and len(x.shape) == 2
+    NR_OF_CORES = 1408
+    target = NR_OF_CORES 
     N, M = x.shape
-    block_size_m = min(128, _near_pow_2(M))
-    tgt_nr_blocks_n = 1408 / math.ceil((M/block_size_m))
-    block_size_n = min(128, _near_pow_2(math.ceil(N / tgt_nr_blocks_n)))
+    block_size_m = min(128, triton.next_power_of_2(M))
+    tgt_nr_blocks_n = target / math.ceil((M/block_size_m))
+    block_size_n = min(128, triton.next_power_of_2(math.ceil(N / tgt_nr_blocks_n)))
     grid = lambda meta: (triton.cdiv(N, meta['BLOCK_SIZE_N']), triton.cdiv(M, meta['BLOCK_SIZE_M']))
     _variational_dropout[grid](x, output, N, M, x.stride(0), x.stride(1), p, seed, BLOCK_SIZE_N=block_size_n, BLOCK_SIZE_M=block_size_m)
     return output
