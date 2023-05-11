@@ -23,7 +23,6 @@ def _kernel_config_pruner(configs, nargs):
             continue
 
         if block_size_n * block_size_m < 256:
-            #print(block_size_n, block_size_m, block_size_n*block_size_m)
             continue
 
         used.add((block_size_m, block_size_n, config.num_stages, config.num_warps))
@@ -77,7 +76,7 @@ def _kernel_config_pruner(configs, nargs):
     },
 )
 @triton.jit
-def _variational_dropout(x_ptr, output_ptr, N, M, stride_n, stride_m, p, seed,
+def _variational_dropout_kernel(x_ptr, output_ptr, N, M, stride_n, stride_m, p, seed,
                         BLOCK_SIZE_N: tl.constexpr, BLOCK_SIZE_M: tl.constexpr):
     """
     X is of shape (N, M)
@@ -104,38 +103,45 @@ def _variational_dropout(x_ptr, output_ptr, N, M, stride_n, stride_m, p, seed,
     # write-back
     tl.store(output_ptr + offsets, output, mask=mask)
 
-def seeded_variational_dropout(x, p, seed):
+def _variational_dropout_launch(x, p, seed):
     output = torch.empty_like(x)
     assert x.is_contiguous() and len(x.shape) == 2
     N, M = x.shape
     grid = lambda meta: (triton.cdiv(N, meta['BLOCK_SIZE_N']), triton.cdiv(M, meta['BLOCK_SIZE_M']))
-    _variational_dropout[grid](x, output, N, M, x.stride(0), x.stride(1), p, seed)
+    _variational_dropout_kernel[grid](x, output, N, M, x.stride(0), x.stride(1), p, seed)
     return output
 
 class SeededVariationalDropout(torch.autograd.Function):
     @classmethod
-    def forward(cls, ctx, x, p, seed=None):
-        if not seed:
-            seed = random.randrange(int(1e3))
+    def forward(cls, ctx, x, p, seed):
         ctx.p = p
         ctx.seed = seed
-        return seeded_variational_dropout(x, p, seed)
+        return _variational_dropout_launch(x, p, seed)
 
     @classmethod
     def backward(cls, ctx, dy):
         p = ctx.p
         seed = ctx.seed
-        return seeded_variational_dropout(dy, p, seed), None, None
+        return _variational_dropout_launch(dy, p, seed), None, None
 
-
-
-def torch_variational_dropout(x, p, seed):
+def _torch_variational_dropout(x, p, seed):
     torch.manual_seed(seed)
     ones = x.data.new_ones(x.shape[0])
     dropout_mask = torch.nn.functional.dropout(ones, p=p)
     return dropout_mask.unsqueeze(1) * x
 
+def variational_dropout(x, p, seed=None):
+    if not seed:
+        seed = random.randrange(int(1e6))
 
+    if x.is_cuda:
+        return SeededVariationalDropout.apply(x, p, seed)
+    else:
+        return _torch_variational_dropout(x, p, seed)
+
+
+
+# == testing code ==
 N = 64 * 768
 
 @triton.testing.perf_report(
@@ -161,18 +167,18 @@ def benchmark(size, provider):
     print(f"{provider:<15} {size2} ({size})")
 
     #x = torch.rand(size2, device='cuda', dtype=torch.float16)
-    #x = torch.rand(size2, device='cuda', dtype=torch.float32)
-    x = torch.rand(size2, device='cuda', dtype=torch.float64)
+    x = torch.rand(size2, device='cuda', dtype=torch.float32)
+    #x = torch.rand(size2, device='cuda', dtype=torch.float64)
     p = 0.5
     seed = 1234
     quantiles = [0.5, 0.2, 0.8]
     if provider == 'torch':
-        ms, min_ms, max_ms = triton.testing.do_bench(lambda: torch_variational_dropout(x, p, seed), quantiles=quantiles)
+        ms, min_ms, max_ms = triton.testing.do_bench(lambda: _torch_variational_dropout(x, p, seed), quantiles=quantiles)
     if provider == 'torch-compile':
-        drop_fn = torch.compile(torch_variational_dropout)
+        drop_fn = torch.compile(_torch_variational_dropout)
         ms, min_ms, max_ms = triton.testing.do_bench(lambda: drop_fn(x, p, seed), quantiles=quantiles)
     if provider == 'triton':
-        ms, min_ms, max_ms = triton.testing.do_bench(lambda: SeededVariationalDropout.apply(x, p, seed), quantiles=quantiles)
+        ms, min_ms, max_ms = triton.testing.do_bench(lambda: variational_dropout(x, p, seed), quantiles=quantiles)
     gbps = lambda ms: 12 * size / ms * 1e-6
     return gbps(ms), gbps(max_ms), gbps(min_ms)
 
@@ -187,7 +193,7 @@ if __name__ == "__main__":
 
     #x = torch.ones((14,18), device='cuda', dtype=torch.double, requires_grad=True)
     x = torch.randn(14, 18, dtype=torch.double, requires_grad=True, device='cuda')
-    y = seeded_variational_dropout(x, 0.5, seed)
+    y = variational_dropout(x, 0.5, seed)
 
     torch.set_printoptions(precision=3, threshold=1000, linewidth=240)
 
@@ -195,7 +201,7 @@ if __name__ == "__main__":
     print(y)
 
     # gradient check
-    dropout_fn = lambda input_: SeededVariationalDropout.apply(input_, 0.5, seed)
+    dropout_fn = lambda input_: variational_dropout(input_, 0.5, seed)
     result = torch.autograd.gradcheck(dropout_fn, x, eps=1e-6, atol=1e-4)
     print(f"grad check: {result}")
 
