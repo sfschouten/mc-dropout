@@ -11,12 +11,14 @@ The potential memory savings are pretty modest, so it's important that the seede
 ## Performance
 Benchmark compares performance to conventional pytorch implementation , and to that same implementation but with `torch.compile`.
 
-![Results of running benchmark for various sizes of tensors.](https://github.com/sfschouten/seeded-variational-dropout/blob/main/Figure_1.png)
+![Results of running benchmark for various sizes of tensors.](https://github.com/sfschouten/seeded-variational-dropout/blob/main/performance_fp32.png)
 
 The benchmark goes through tensors of shape [1 x 64 * 768] through [8192 x 64 * 768], simulating the application of dropout to representations of larger and larger contexts.
 
-As can be seen, performance is initially a bit better than the baselines for smaller tensors, but then performs worse for larger tensors.
-I'm not sure why that is, possibly I did something suboptimal in deciding the kernel block sizes, this is something I want to improve.
+With the autotune feature of Triton performance is now at least as good as regular pytorch for all sizes.
 
-I've played around with the Triton's `autotune` feature a bit, but so far without success.
+Something interesting happens when I do the same thing for dtype=torch.float16 and dtype=torch.float64 though.
 
+torch.float16                                                                                                 | torch.float64
+:------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------:
+![Results for FP16](https://github.com/sfschouten/seeded-variational-dropout/blob/main/performance_fp16.png)  | ![Results for FP64](https://github.com/sfschouten/seeded-variational-dropout/blob/main/performance_fp64.png)
