@@ -32,4 +32,4 @@ torch.float16                                                                   
 :--------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------:
 ![](https://github.com/sfschouten/seeded-variational-dropout/blob/main/performance_report/performance_fp16.png) | ![](https://github.com/sfschouten/seeded-variational-dropout/blob/main/performance_report/performance_fp64.png)
 
-Not totally sure, but looks to me as though the torch implementation just ignores dtypes and performs the operation as though they are all torch.float32.
+Not totally sure what's going on here yet!
