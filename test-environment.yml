@@ -1,0 +1,13 @@
+channels:
+  - nvidia
+  - pytorch
+dependencies:
+  - conda-forge::libstdcxx-ng=12
+  - python=3.10
+  - pytorch
+  - pytorch-cuda=11.7
+  - pandas
+  - matplotlib
+  - pip
+  - pip:
+    - -e /home/stefan/Projects/fastish-mc-dropout/triton/python[tutorials]
