@@ -16,7 +16,7 @@ Benchmark compares performance of seeded implementations to a conventional pytor
 
 training (block sizes are powers of two)                                                                        | inference
 :--------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------:
-![](https://github.com/sfschouten/seeded-variational-dropout/blob/main/performance_report/performance_fp32.png) | ![](https://github.com/sfschouten/seeded-variational-dropout/blob/main/performance_report/performance_fp32_.png)
+![](https://github.com/sfschouten/seeded-variational-dropout/blob/main/performance_report/performance_fp32.png) | ![](https://github.com/sfschouten/seeded-variational-dropout/blob/main/performance_report/performance_fp32_noisy.png)
 
 
 The benchmark goes through tensors of shape [1 x 64 * 768] through [8192 x 64 * 768], simulating the application of dropout to representations of larger and larger contexts.
