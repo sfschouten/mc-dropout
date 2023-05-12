@@ -2,7 +2,7 @@
 
 Implementation of seeded variational dropout (a.k.a. locked dropout) in Triton.
 
-Most implementations ([1](https://github.com/allenai/allennlp/blob/main/allennlp/modules/input_variational_dropout.py), [2](https://github.com/s-nlp/certain-transformer/blob/main/src/ue4nlp/dropout_mc.py)) of variational dropout first create a mask by applying the standard dropout procedure to a tensor of ones.
+Most implementations (e.g. [1](https://github.com/allenai/allennlp/blob/main/allennlp/modules/input_variational_dropout.py), [2](https://github.com/s-nlp/certain-transformer/blob/main/src/ue4nlp/dropout_mc.py)) of variational dropout first create a mask by applying the standard dropout procedure to a tensor of ones.
 The downside is that it requires the mask to be kept in memory so it can be applied to the gradients during the backward pass.
 
 A seeded implementation works by using the same seed in the same way, so that instead of keeping the mask in memory, we only need to remember the seed.
