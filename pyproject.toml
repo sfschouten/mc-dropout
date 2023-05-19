@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "seeded-variational-dropout"
+name = "sv_dropout"
 version = "0.0.1"
 authors = [
   { name="Stefan F. Schouten", email="sfschouten@gmail.com" },
