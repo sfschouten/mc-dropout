@@ -10,7 +10,7 @@ import kernel_2d_tokens
 
 
 def _torch_variational_dropout(x, p, dim):
-    mask_size = tuple(1 if i == dim else d for i,d in enumerate(x.size()))
+    mask_size = tuple(1 if i == dim else d for i, d in enumerate(x.size()))
     ones = x.data.new_ones(mask_size)
     dropout_mask = torch.nn.functional.dropout(ones, p=p)
     return dropout_mask * x
@@ -21,14 +21,13 @@ def variational_dropout(x, p, dim=0, seed=None):
     Params:
         dim: The dimension along which the same dropout mask will be applied.
     """
+    if p == 0:
+        return x
+
     if not seed:
         seed = random.randrange(int(1e6))
 
     if x.is_cuda:
-        #M = x.shape[dim]
-        #if len(x.shape) == 2 and M & (M-1) == 0: # check if power of 2
-        #    return kernel_2d_tokens.SeededVariationalDropout2D.apply(x, p, dim, seed)
-        #else:
         return kernel_1d.SeededVariationalDropout1D.apply(x, p, dim, seed)
     else:
         torch.manual_seed(seed)

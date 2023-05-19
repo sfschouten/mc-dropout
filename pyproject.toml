@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "seeded-variational-dropout"
+version = "0.0.1"
+authors = [
+  { name="Stefan F. Schouten", email="sfschouten@gmail.com" },
+]
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/sfschouten/seeded-variational-dropout"
+"Bug Tracker" = "https://github.com/sfschouten/seeded-variational-dropout/issues"
