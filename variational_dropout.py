@@ -25,7 +25,7 @@ def variational_dropout(x, p, dim=0, seed=None):
         seed = random.randrange(int(1e6))
 
     if x.is_cuda:
-        M = x.shape[dim]
+        #M = x.shape[dim]
         #if len(x.shape) == 2 and M & (M-1) == 0: # check if power of 2
         #    return kernel_2d_tokens.SeededVariationalDropout2D.apply(x, p, dim, seed)
         #else:

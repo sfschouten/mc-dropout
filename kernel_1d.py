@@ -42,14 +42,21 @@ def _variational_dropout_kernel_1d(
     tl.store(output_ptr + offsets, output, mask=mask)
 
 
+def info(x):
+    if torch.is_floating_point(x):
+        return torch.finfo(x.dtype)
+    else:
+        return torch.iinfo(x.dtype)
+
+
 def _variational_dropout_1d_launch(x, p, dim, seed):
     output = torch.empty_like(x)
     assert x.is_contiguous()
     grid = lambda meta: (triton.cdiv(x.numel(), meta['BLOCK_SIZE']),)
     stride_token_dim = x.stride(dim)
     stride_before = x.stride(dim - 1) if dim > 0 else x.numel()
-    _variational_dropout_kernel_1d[grid](x, output, x.numel(), stride_token_dim, stride_before, p, seed,
-                                         torch.finfo(x.dtype).bits, int(math.log2(x.numel())))
+    _variational_dropout_kernel_1d[grid](
+        x, output, x.numel(), stride_token_dim, stride_before, p, seed, info(x).bits, int(math.log2(x.numel())))
     return output
 
 
